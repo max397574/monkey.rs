@@ -96,6 +96,61 @@ impl<'a> Lexer<'a> {
             }
         }
     }
+
+    pub fn next_token(&mut self) -> Token {
+        self.skip_whitespace();
+        match self.read_char() {
+            Some('+') => Token::Plus,
+            Some('-') => Token::Minus,
+            Some('/') => Token::Slash,
+            Some('*') => Token::Asterisk,
+            Some('!') => {
+                if self.input.peek().is_some_and(|ch| ch == &'=') {
+                    self.read_char();
+                    Token::Neq
+                } else {
+                    Token::Bang
+                }
+            }
+            Some('<') => Token::Lt,
+            Some('>') => Token::Gt,
+            Some('=') => {
+                if self.input.peek().is_some_and(|ch| ch == &'=') {
+                    self.read_char();
+                    Token::Eq
+                } else {
+                    Token::Assign
+                }
+            }
+            Some('(') => Token::Lparen,
+            Some(')') => Token::Rparen,
+            Some('{') => Token::Lbrace,
+            Some('}') => Token::Rbrace,
+            Some(',') => Token::Comma,
+            Some(';') => Token::Semicolon,
+            Some(ch) => {
+                if is_letter(ch) {
+                    let identifier = self.read_identifier(ch);
+                    match identifier.as_str() {
+                        "fn" => Token::Function,
+                        "let" => Token::Let,
+                        "true" => Token::True,
+                        "false" => Token::False,
+                        "if" => Token::If,
+                        "else" => Token::Else,
+                        "return" => Token::Return,
+                        _ => Token::Ident(identifier),
+                    }
+                } else if ch.is_ascii_digit() {
+                    let number = self.read_number(ch);
+                    Token::Int(number.parse::<i64>().unwrap())
+                } else {
+                    Token::Illegal
+                }
+            }
+            None => Token::EOF,
+        }
+    }
 }
 
 fn is_letter(ch: char) -> bool {
@@ -105,57 +160,10 @@ fn is_letter(ch: char) -> bool {
 impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
     fn next(&mut self) -> Option<Self::Item> {
-        self.skip_whitespace();
-        match self.read_char() {
-            Some('+') => Some(Token::Plus),
-            Some('-') => Some(Token::Minus),
-            Some('/') => Some(Token::Slash),
-            Some('*') => Some(Token::Asterisk),
-            Some('!') => {
-                if self.input.peek().is_some_and(|ch| ch == &'=') {
-                    self.read_char();
-                    Some(Token::Neq)
-                } else {
-                    Some(Token::Bang)
-                }
-            }
-            Some('<') => Some(Token::Lt),
-            Some('>') => Some(Token::Gt),
-            Some('=') => {
-                if self.input.peek().is_some_and(|ch| ch == &'=') {
-                    self.read_char();
-                    Some(Token::Eq)
-                } else {
-                    Some(Token::Assign)
-                }
-            }
-            Some('(') => Some(Token::Lparen),
-            Some(')') => Some(Token::Rparen),
-            Some('{') => Some(Token::Lbrace),
-            Some('}') => Some(Token::Rbrace),
-            Some(',') => Some(Token::Comma),
-            Some(';') => Some(Token::Semicolon),
-            Some(ch) => {
-                if is_letter(ch) {
-                    let identifier = self.read_identifier(ch);
-                    match identifier.as_str() {
-                        "fn" => Some(Token::Function),
-                        "let" => Some(Token::Let),
-                        "true" => Some(Token::True),
-                        "false" => Some(Token::False),
-                        "if" => Some(Token::If),
-                        "else" => Some(Token::Else),
-                        "return" => Some(Token::Return),
-                        _ => Some(Token::Ident(identifier)),
-                    }
-                } else if ch.is_ascii_digit() {
-                    let number = self.read_number(ch);
-                    Some(Token::Int(number.parse::<i64>().unwrap()))
-                } else {
-                    Some(Token::Illegal)
-                }
-            }
-            None => None,
+        let token = self.next_token();
+        match token {
+            Token::EOF => None,
+            tkn => Some(tkn),
         }
     }
 }

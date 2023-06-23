@@ -1,5 +1,7 @@
 pub mod lexer;
 pub mod repl;
+mod ast;
+mod parser;
 use std::io;
 
 fn main() {
