@@ -13,6 +13,7 @@ pub fn start<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::
         match program {
             Ok(prog) => {
                 for statement in prog.statements {
+                    // println!("{statement}");
                     println!("{statement:?}");
                 }
             }

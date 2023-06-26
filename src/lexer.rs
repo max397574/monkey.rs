@@ -222,8 +222,6 @@ mod tests {
 
     #[test]
     fn complex_program() {
-        // TODO: fix tests passing even though whitespace isn't removed yet
-        // let mut same = true;
         let mut l = Lexer::new(
             "let five = 5;
 let ten = 10;
