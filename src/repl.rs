@@ -3,6 +3,7 @@ use std::io;
 
 pub fn start<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::Result<()> {
     println!("Hello! This is the Monkey programming language!\nFeel free to type in commands");
+    let mut env = crate::object::Environment::new();
     loop {
         let _ = writer.write(b">> ");
         writer.flush()?;
@@ -12,7 +13,7 @@ pub fn start<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::
         let program = parser.parse_program();
         match program {
             Ok(prog) => {
-                match evaluator::eval(&Node::Program(Box::new(prog))) {
+                match evaluator::eval(&Node::Program(Box::new(prog)), &mut env) {
                     Ok(evaluated) => println!("{evaluated}"),
                     Err(e) => println!("{e}"),
                 }

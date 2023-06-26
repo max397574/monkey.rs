@@ -5,18 +5,18 @@ use crate::object::{self, Object};
 type EvalError = String;
 type EvalResult = Result<Object, EvalError>;
 
-pub fn eval(node: &Node) -> EvalResult {
+pub fn eval(node: &Node, env: &mut object::Environment) -> EvalResult {
     match node {
-        Node::Program(prog) => eval_program(prog),
-        Node::Statement(stmt) => eval_statement(stmt),
-        Node::Expression(exp) => eval_expression(exp),
+        Node::Program(prog) => eval_program(prog, env),
+        Node::Statement(stmt) => eval_statement(stmt, env),
+        Node::Expression(exp) => eval_expression(exp, env),
     }
 }
 
-fn eval_block(block: &Vec<Statement>) -> EvalResult {
+fn eval_block(block: &Vec<Statement>, env: &mut object::Environment) -> EvalResult {
     let mut result = Object::Null;
     for statement in block {
-        let res = eval_statement(statement)?;
+        let res = eval_statement(statement, env)?;
         match res {
             Object::Return(_) => return Ok(res),
             _ => result = res,
@@ -25,10 +25,10 @@ fn eval_block(block: &Vec<Statement>) -> EvalResult {
     Ok(result)
 }
 
-fn eval_program(program: &Program) -> EvalResult {
+fn eval_program(program: &Program, env: &mut object::Environment) -> EvalResult {
     let mut result = Object::Null;
     for statement in &program.statements {
-        result = eval_statement(statement)?;
+        result = eval_statement(statement, env)?;
         if let Object::Return(ret) = result {
             return Ok(ret.value);
         }
@@ -36,12 +36,16 @@ fn eval_program(program: &Program) -> EvalResult {
     Ok(result)
 }
 
-fn eval_statement(statement: &Statement) -> EvalResult {
+fn eval_statement(statement: &Statement, env: &mut object::Environment) -> EvalResult {
     match statement {
-        Statement::Expression(exp) => eval_expression(&exp.expression),
-        Statement::Let(stmt) => todo!(),
+        Statement::Expression(exp) => eval_expression(&exp.expression, env),
+        Statement::Let(stmt) => {
+            let val = eval_expression(&stmt.value, env)?;
+            env.set(stmt.name.clone(), val.clone());
+            Ok(val)
+        }
         Statement::Return(ret) => {
-            let val = eval_expression(&ret.value)?;
+            let val = eval_expression(&ret.value, env)?;
             Ok(Object::Return(Box::new(object::Return { value: val })))
         }
     }
@@ -119,31 +123,42 @@ fn is_truthy(obj: &Object) -> bool {
     }
 }
 
-fn eval_if_expression(expression: &std::boxed::Box<IfExpression>) -> EvalResult {
-    let condition = eval_expression(&expression.condition)?;
+fn eval_if_expression(
+    expression: &std::boxed::Box<IfExpression>,
+    env: &mut object::Environment,
+) -> EvalResult {
+    let condition = eval_expression(&expression.condition, env)?;
     if is_truthy(&condition) {
-        eval_block(&expression.consequence.statements)
+        eval_block(&expression.consequence.statements, env)
     } else {
         match &expression.alternative {
-            Some(block) => eval_block(&block.statements),
+            Some(block) => eval_block(&block.statements, env),
             None => Ok(Object::Null),
         }
     }
 }
 
-fn eval_expression(expression: &Expression) -> EvalResult {
+fn eval_identifier(identifier: String, env: &mut object::Environment) -> EvalResult {
+    match env.get(&identifier) {
+        Some(val) => Ok(val),
+        None => Err(format!("Variable `{}` not found", identifier)),
+    }
+}
+
+fn eval_expression(expression: &Expression, env: &mut object::Environment) -> EvalResult {
     match expression {
         Expression::Int(int) => Ok(Object::Int(*int)),
         Expression::Bool(b) => Ok(Object::Bool(*b)),
         Expression::Prefix(pre) => {
-            eval_prefix_expression(&pre.operator, &eval_expression(&pre.right)?)
+            eval_prefix_expression(&pre.operator, &eval_expression(&pre.right, env)?)
         }
         Expression::Infix(inf) => eval_infix_expression(
             &inf.operator,
-            &eval_expression(&inf.left)?,
-            &eval_expression(&inf.right)?,
+            &eval_expression(&inf.left, env)?,
+            &eval_expression(&inf.right, env)?,
         ),
-        Expression::If(if_exp) => eval_if_expression(if_exp),
+        Expression::If(if_exp) => eval_if_expression(if_exp, env),
+        Expression::Identifier(ident) => eval_identifier(ident.to_string(), env),
         _ => todo!(),
     }
 }
