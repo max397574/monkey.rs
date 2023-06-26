@@ -17,8 +17,8 @@ pub fn start<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::
                     Err(e) => println!("{e}"),
                 }
                 // for statement in prog.statements {
-                // println!("{statement}");
-                //     println!("{statement:?}");
+                //     println!("{statement}");
+                //     // println!("{statement:?}");
                 // }
             }
             Err(errs) => {

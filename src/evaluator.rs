@@ -7,10 +7,18 @@ type EvalResult = Result<Object, EvalError>;
 
 pub fn eval(node: &Node) -> EvalResult {
     match node {
-        Node::Program(prog) => eval_program(&prog),
-        Node::Statement(stmt) => eval_statement(&stmt),
-        Node::Expression(exp) => eval_expression(&exp),
+        Node::Program(prog) => eval_program(prog),
+        Node::Statement(stmt) => eval_statement(stmt),
+        Node::Expression(exp) => eval_expression(exp),
     }
+}
+
+fn eval_block(block: &Vec<Statement>) -> EvalResult {
+    let mut result = Object::Null;
+    for statement in block {
+        result = eval_statement(statement)?;
+    }
+    Ok(result)
 }
 
 fn eval_program(program: &Program) -> EvalResult {
@@ -92,6 +100,26 @@ fn eval_infix_expression(operator: &Token, left: &Object, right: &Object) -> Eva
     }
 }
 
+fn is_truthy(obj: &Object) -> bool {
+    match obj {
+        Object::Bool(b) => *b,
+        Object::Null => false,
+        Object::Int(_) => true,
+    }
+}
+
+fn eval_if_expression(expression: &std::boxed::Box<IfExpression>) -> EvalResult {
+    let condition = eval_expression(&expression.condition)?;
+    if is_truthy(&condition) {
+        eval_block(&expression.consequence.statements)
+    } else {
+        match &expression.alternative {
+            Some(block) => eval_block(&block.statements),
+            None => Ok(Object::Null),
+        }
+    }
+}
+
 fn eval_expression(expression: &Expression) -> EvalResult {
     match expression {
         Expression::Int(int) => Ok(Object::Int(*int)),
@@ -104,6 +132,7 @@ fn eval_expression(expression: &Expression) -> EvalResult {
             &eval_expression(&inf.left)?,
             &eval_expression(&inf.right)?,
         ),
+        Expression::If(if_exp) => eval_if_expression(if_exp),
         _ => todo!(),
     }
 }

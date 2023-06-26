@@ -108,7 +108,7 @@ impl<'a> Parser<'a> {
         match (&token, &self.cur_token) {
             (Token::Ident(_), Token::Ident(_)) => true,
             (Token::Int(_), Token::Int(_)) => true,
-            _ => token == self.peek_token,
+            _ => token == self.cur_token,
         }
     }
 
