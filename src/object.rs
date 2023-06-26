@@ -1,3 +1,4 @@
+use crate::ast;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -7,6 +8,28 @@ pub enum Object {
     Bool(bool),
     Null,
     Return(Box<Return>),
+    Function(Box<Function>),
+}
+
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub parameters: Vec<ast::IdentifierExpression>,
+    pub body: ast::BlockStatement,
+    pub env: Box<Environment>,
+}
+
+impl Function {
+    fn inspect(&self) -> String {
+        let params: Vec<String> = (&self.parameters)
+            .into_iter()
+            .map(|p| p.to_string())
+            .collect();
+        format!(
+            "fn({}) {{\n{}\n}}",
+            params.join(", "),
+            self.body.to_string()
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -27,8 +50,8 @@ impl Object {
             Object::Bool(b) => b.to_string(),
             Object::Null => String::from("null"),
             Object::Return(r) => r.value.inspect(),
+            Object::Function(f) => f.inspect(),
             //     Object::String(s) => s.clone(),
-            //     Object::Function(f) => f.inspect(),
             //     Object::Builtin(b) => b.inspect(),
             //     Object::Array(a) => a.inspect(),
             //     Object::Hash(h) => h.inspect(),
@@ -44,6 +67,7 @@ impl fmt::Display for Object {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Environment {
     pub store: HashMap<String, Object>,
     pub outer: Option<Box<Environment>>,
@@ -54,6 +78,13 @@ impl Environment {
         Environment {
             store: HashMap::new(),
             outer: None,
+        }
+    }
+
+    pub fn new_enclosed(env: Box<Environment>) -> Environment {
+        Environment {
+            store: HashMap::new(),
+            outer: Some(env),
         }
     }
 

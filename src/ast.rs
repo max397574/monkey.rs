@@ -10,7 +10,7 @@ pub struct Program {
     pub statements: Vec<Statement>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
@@ -28,7 +28,7 @@ impl std::fmt::Display for Statement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Identifier(String),
     Int(i64),
@@ -61,7 +61,7 @@ impl std::fmt::Display for Expression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
     pub value: Expression,
 }
@@ -72,7 +72,7 @@ impl std::fmt::Display for ReturnStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixExpression {
     pub operator: Token,
     pub right: Expression,
@@ -84,7 +84,7 @@ impl std::fmt::Display for PrefixExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfixExpression {
     pub left: Expression,
     pub operator: Token,
@@ -97,7 +97,7 @@ impl std::fmt::Display for InfixExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LetStatement {
     pub name: String,
     pub value: Expression,
@@ -109,7 +109,7 @@ impl std::fmt::Display for LetStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IfExpression {
     pub condition: Expression,
     pub consequence: BlockStatement,
@@ -127,7 +127,7 @@ impl std::fmt::Display for IfExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
@@ -141,7 +141,7 @@ impl std::fmt::Display for BlockStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpressionStatement {
     pub expression: Expression,
 }
@@ -152,7 +152,7 @@ impl std::fmt::Display for ExpressionStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IdentifierExpression {
     pub name: String,
 }
@@ -163,7 +163,7 @@ impl std::fmt::Display for IdentifierExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionLiteral {
     pub parameters: Vec<IdentifierExpression>,
     pub body: BlockStatement,
@@ -176,7 +176,7 @@ impl std::fmt::Display for FunctionLiteral {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CallExpression {
     pub function: Expression,
     pub arguments: Vec<Expression>,

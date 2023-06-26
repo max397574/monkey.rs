@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::object::{self, Object};
+use crate::object::{self, Environment, Object};
 
 type EvalError = String;
 type EvalResult = Result<Object, EvalError>;
@@ -114,13 +114,8 @@ fn eval_infix_expression(operator: &Token, left: &Object, right: &Object) -> Eva
     }
 }
 
-fn is_truthy(obj: &Object) -> bool {
-    match obj {
-        Object::Bool(b) => *b,
-        Object::Null => false,
-        Object::Int(_) => true,
-        Object::Return(ret) => is_truthy(&ret.value),
-    }
+fn is_truthy(obj: &Object, _env: &mut Environment) -> bool {
+    !matches!(obj, Object::Bool(false) | Object::Null)
 }
 
 fn eval_if_expression(
@@ -128,7 +123,7 @@ fn eval_if_expression(
     env: &mut object::Environment,
 ) -> EvalResult {
     let condition = eval_expression(&expression.condition, env)?;
-    if is_truthy(&condition) {
+    if is_truthy(&condition, env) {
         eval_block(&expression.consequence.statements, env)
     } else {
         match &expression.alternative {
@@ -142,6 +137,52 @@ fn eval_identifier(identifier: String, env: &mut object::Environment) -> EvalRes
     match env.get(&identifier) {
         Some(val) => Ok(val),
         None => Err(format!("Variable `{}` not found", identifier)),
+    }
+}
+
+fn eval_expressions(
+    exps: &Vec<Expression>,
+    env: &mut object::Environment,
+) -> Result<Vec<Object>, EvalError> {
+    let mut objs = Vec::with_capacity(exps.len());
+
+    for e in exps {
+        let res = eval_expression(e, env)?;
+        objs.push(res);
+    }
+
+    Ok(objs)
+}
+
+fn extend_function_env(func: &object::Function, args: &[Object]) -> Environment {
+    let mut env = Environment::new_enclosed(func.env.clone());
+
+    let mut args_iter = args.iter();
+
+    for param in &func.parameters {
+        let arg = args_iter.next().unwrap();
+
+        env.set(param.name.clone(), arg.clone())
+    }
+
+    env
+}
+
+fn unwrap_return_value(obj: Box<Object>) -> Box<Object> {
+    if let Object::Return(ret) = &*obj {
+        return Box::new(ret.value.clone());
+    }
+    obj
+}
+
+fn apply_function(func: &Object, args: &[Object]) -> EvalResult {
+    match func {
+        Object::Function(f) => {
+            let mut extended_env = extend_function_env(f, args);
+            let evaluated = eval_block(&f.body.statements, &mut extended_env)?;
+            Ok(*unwrap_return_value(Box::new(evaluated)))
+        }
+        f => Err(format!("{:?} is not a function", f)),
     }
 }
 
@@ -159,6 +200,15 @@ fn eval_expression(expression: &Expression, env: &mut object::Environment) -> Ev
         ),
         Expression::If(if_exp) => eval_if_expression(if_exp, env),
         Expression::Identifier(ident) => eval_identifier(ident.to_string(), env),
-        _ => todo!(),
+        Expression::Function(fun) => Ok(Object::Function(Box::new(object::Function {
+            parameters: fun.parameters.clone(),
+            body: fun.body.clone(),
+            env: Box::new(env.clone()),
+        }))),
+        Expression::Call(exp) => {
+            let function = eval_expression(&exp.function, env)?;
+            let args = eval_expressions(&exp.arguments, env)?;
+            apply_function(&function, &args)
+        }
     }
 }
