@@ -46,6 +46,36 @@ pub enum Token {
     Return,
 }
 
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::Ident(name) => write!(f, "{}", name),
+            Token::Int(val) => write!(f, "{}", val),
+            Token::Minus => write!(f, "-"),
+            Token::Plus => write!(f, "+"),
+            Token::Bang => write!(f, "!"),
+            Token::Asterisk => write!(f, "*"),
+            Token::Slash => write!(f, "/"),
+            Token::Gt => write!(f, ">"),
+            Token::Lt => write!(f, "<"),
+            Token::Eq => write!(f, "=="),
+            Token::Neq => write!(f, "!="),
+            Token::Semicolon => write!(f, ";"),
+            Token::Colon => write!(f, ":"),
+            Token::Assign => write!(f, "="),
+            Token::Function => write!(f, "fn"),
+            Token::Lparen => write!(f, "("),
+            Token::Rparen => write!(f, ")"),
+            Token::Lbrace => write!(f, "{{"),
+            Token::Rbrace => write!(f, "}}"),
+            Token::Comma => write!(f, ","),
+            Token::Lbracket => write!(f, "["),
+            Token::Rbracket => write!(f, "]"),
+            tok => write!(f, "{:?}", tok),
+        }
+    }
+}
+
 pub struct Lexer<'a> {
     input: Peekable<Chars<'a>>,
 }

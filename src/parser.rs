@@ -187,6 +187,18 @@ impl<'a> Parser<'a> {
         Ok(left_exp)
     }
 
+    pub fn parse_block_statement(&mut self) -> Result<ast::BlockStatement, ParseError> {
+        let mut statements = Vec::new();
+        self.next_token();
+        while !self.cur_token_is(Token::Rbrace) && !self.cur_token_is(Token::EOF) {
+            if let Ok(stmt) = self.parse_statement() {
+                statements.push(stmt);
+            }
+            self.next_token();
+        }
+        Ok(ast::BlockStatement { statements })
+    }
+
     pub fn parse_identifier(parser: &mut Parser<'_>) -> Result<ast::Expression, ParseError> {
         if let Token::Ident(ref name) = parser.cur_token {
             return Ok(ast::Expression::Identifier(name.to_string()));
@@ -224,6 +236,7 @@ impl<'a> Parser<'a> {
         let operator = parser.cur_token.clone();
         let precedence = parser.cur_precedence();
         parser.next_token();
+        // decrement precedence here for right-associativity
         let right = parser.parse_expression(precedence)?;
         Ok(ast::Expression::Infix(Box::new(ast::InfixExpression {
             left,
@@ -232,11 +245,53 @@ impl<'a> Parser<'a> {
         })))
     }
 
+    pub fn parse_bool(parser: &mut Parser<'_>) -> Result<ast::Expression, ParseError> {
+        match parser.cur_token {
+            Token::True => Ok(ast::Expression::Bool(true)),
+            Token::False => Ok(ast::Expression::Bool(false)),
+            _ => panic!("couldn't parse {:?} to boolean", parser.cur_token),
+        }
+    }
+
+    pub fn parse_grouped_expression(
+        parser: &mut Parser<'_>,
+    ) -> Result<ast::Expression, ParseError> {
+        parser.next_token();
+        let expression = parser.parse_expression(Precedence::Lowest);
+        parser.expect_peek(Token::Rparen)?;
+        expression
+    }
+
+    pub fn parse_if_expression(parser: &mut Parser<'_>) -> Result<ast::Expression, ParseError> {
+        parser.expect_peek(Token::Lparen)?;
+        parser.next_token();
+        let condition = parser.parse_expression(Precedence::Lowest)?;
+        parser.expect_peek(Token::Rparen)?;
+        parser.expect_peek(Token::Lbrace)?;
+        let consequence = parser.parse_block_statement()?;
+        let mut alternative = None;
+        if parser.peek_token_is(&Token::Else) {
+            parser.next_token();
+            parser.expect_peek(Token::Lbrace)?;
+            if let Ok(alt) = parser.parse_block_statement() {
+                alternative = Some(alt);
+            }
+        }
+        Ok(ast::Expression::If(Box::new(ast::IfExpression {
+            condition,
+            consequence,
+            alternative,
+        })))
+    }
+
     fn prefix_fn(&mut self) -> Option<PrefixFn> {
         match self.cur_token {
             Token::Ident(_) => Some(Parser::parse_identifier),
             Token::Int(_) => Some(Parser::parse_integer),
             Token::Bang | Token::Minus => Some(Parser::parse_prefix_expression),
+            Token::True | Token::False => Some(Parser::parse_bool),
+            Token::Lparen => Some(Parser::parse_grouped_expression),
+            Token::If => Some(Parser::parse_if_expression),
             _ => None,
         }
     }
