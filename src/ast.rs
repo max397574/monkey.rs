@@ -36,6 +36,7 @@ pub enum Expression {
     Infix(Box<InfixExpression>),
     Bool(bool),
     If(Box<IfExpression>),
+    Function(Box<FunctionLiteral>),
 }
 
 impl Expression {
@@ -47,6 +48,7 @@ impl Expression {
             Expression::Infix(inf) => inf.to_string(),
             Expression::Bool(val) => val.to_string(),
             Expression::If(val) => val.to_string(),
+            Expression::Function(fn_lit) => fn_lit.to_string(),
         }
     }
 }
@@ -145,5 +147,32 @@ pub struct ExpressionStatement {
 impl std::fmt::Display for ExpressionStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.expression)
+    }
+}
+
+#[derive(Debug)]
+pub struct IdentifierExpression {
+    pub name: String,
+}
+
+impl std::fmt::Display for IdentifierExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Debug)]
+pub struct FunctionLiteral {
+    pub parameters: Vec<IdentifierExpression>,
+    pub body: BlockStatement,
+}
+
+impl std::fmt::Display for FunctionLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let param_list: Vec<String> = (self.parameters)
+            .iter()
+            .map(|p| p.to_string())
+            .collect();
+        write!(f, "({}) {}", param_list.join(", "), self.body)
     }
 }

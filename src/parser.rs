@@ -284,6 +284,52 @@ impl<'a> Parser<'a> {
         })))
     }
 
+    fn parse_identifier_into_identifier_expression(
+        &mut self,
+    ) -> Result<ast::IdentifierExpression, ParseError> {
+        if let Token::Ident(ref name) = self.cur_token {
+            return Ok(ast::IdentifierExpression {
+                name: name.to_string(),
+            });
+        }
+
+        Err(format!(
+            "unexpected error on identifier parse with {}",
+            self.cur_token
+        ))
+    }
+
+    pub fn parse_function_parameters(
+        &mut self,
+    ) -> Result<Vec<ast::IdentifierExpression>, ParseError> {
+        let mut identifiers = Vec::new();
+        if self.peek_token_is(&Token::Rparen) {
+            self.next_token();
+            return Ok(identifiers);
+        }
+        self.next_token();
+        identifiers.push(self.parse_identifier_into_identifier_expression()?);
+
+        while self.peek_token_is(&Token::Comma) {
+            self.next_token();
+            self.next_token();
+            identifiers.push(self.parse_identifier_into_identifier_expression()?);
+        }
+        self.expect_peek(Token::Rparen)?;
+        Ok(identifiers)
+    }
+
+    pub fn parse_function_literal(parser: &mut Parser<'_>) -> Result<ast::Expression, ParseError> {
+        parser.expect_peek(Token::Lparen)?;
+        let parameters = parser.parse_function_parameters()?;
+        parser.expect_peek(Token::Lbrace)?;
+        let body = parser.parse_block_statement()?;
+        Ok(ast::Expression::Function(Box::new(ast::FunctionLiteral {
+            parameters,
+            body,
+        })))
+    }
+
     fn prefix_fn(&mut self) -> Option<PrefixFn> {
         match self.cur_token {
             Token::Ident(_) => Some(Parser::parse_identifier),
@@ -292,6 +338,7 @@ impl<'a> Parser<'a> {
             Token::True | Token::False => Some(Parser::parse_bool),
             Token::Lparen => Some(Parser::parse_grouped_expression),
             Token::If => Some(Parser::parse_if_expression),
+            Token::Function => Some(Parser::parse_function_literal),
             _ => None,
         }
     }
