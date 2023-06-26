@@ -37,6 +37,7 @@ pub enum Expression {
     Bool(bool),
     If(Box<IfExpression>),
     Function(Box<FunctionLiteral>),
+    Call(Box<CallExpression>),
 }
 
 impl Expression {
@@ -49,6 +50,7 @@ impl Expression {
             Expression::Bool(val) => val.to_string(),
             Expression::If(val) => val.to_string(),
             Expression::Function(fn_lit) => fn_lit.to_string(),
+            Expression::Call(c) => c.to_string(),
         }
     }
 }
@@ -169,10 +171,20 @@ pub struct FunctionLiteral {
 
 impl std::fmt::Display for FunctionLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let param_list: Vec<String> = (self.parameters)
-            .iter()
-            .map(|p| p.to_string())
-            .collect();
+        let param_list: Vec<String> = (self.parameters).iter().map(|p| p.to_string()).collect();
         write!(f, "({}) {}", param_list.join(", "), self.body)
+    }
+}
+
+#[derive(Debug)]
+pub struct CallExpression {
+    pub function: Expression,
+    pub arguments: Vec<Expression>,
+}
+
+impl std::fmt::Display for CallExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let arg_list: Vec<String> = (self.arguments).iter().map(|p| p.to_string()).collect();
+        write!(f, "{}({})", self.function.to_string(), arg_list.join(", "))
     }
 }

@@ -24,6 +24,7 @@ impl Precedence {
             Token::Minus => Precedence::Sum,
             Token::Slash => Precedence::Product,
             Token::Asterisk => Precedence::Product,
+            Token::Lparen => Precedence::Call,
             _ => Precedence::Lowest,
         }
     }
@@ -353,8 +354,38 @@ impl<'a> Parser<'a> {
             | Token::Neq
             | Token::Lt
             | Token::Gt => Some(Parser::parse_infix_expression),
+            Token::Lparen => Some(Parser::parse_call_expression),
             _ => None,
         }
+    }
+
+    pub fn parse_call_arguments(&mut self) -> Result<Vec<ast::Expression>, ParseError> {
+        let mut args = Vec::new();
+        if self.peek_token_is(&Token::Rparen) {
+            self.next_token();
+            return Ok(args);
+        }
+
+        self.next_token();
+        args.push(self.parse_expression(Precedence::Lowest)?);
+        while self.peek_token_is(&Token::Comma) {
+            self.next_token();
+            self.next_token();
+            args.push(self.parse_expression(Precedence::Lowest)?);
+        }
+        self.expect_peek(Token::Rparen)?;
+        Ok(args)
+    }
+
+    pub fn parse_call_expression(
+        parser: &mut Parser<'_>,
+        function: ast::Expression,
+    ) -> Result<ast::Expression, ParseError> {
+        let arguments = parser.parse_call_arguments()?;
+        Ok(ast::Expression::Call(Box::new(ast::CallExpression {
+            function,
+            arguments,
+        })))
     }
 
     fn peek_precedence(&mut self) -> Precedence {
