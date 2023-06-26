@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::object::Object;
+use crate::object::{self, Object};
 
 type EvalError = String;
 type EvalResult = Result<Object, EvalError>;
@@ -16,7 +16,11 @@ pub fn eval(node: &Node) -> EvalResult {
 fn eval_block(block: &Vec<Statement>) -> EvalResult {
     let mut result = Object::Null;
     for statement in block {
-        result = eval_statement(statement)?;
+        let res = eval_statement(statement)?;
+        match res {
+            Object::Return(_) => return Ok(res),
+            _ => result = res,
+        }
     }
     Ok(result)
 }
@@ -25,6 +29,9 @@ fn eval_program(program: &Program) -> EvalResult {
     let mut result = Object::Null;
     for statement in &program.statements {
         result = eval_statement(statement)?;
+        if let Object::Return(ret) = result {
+            return Ok(ret.value);
+        }
     }
     Ok(result)
 }
@@ -33,14 +40,17 @@ fn eval_statement(statement: &Statement) -> EvalResult {
     match statement {
         Statement::Expression(exp) => eval_expression(&exp.expression),
         Statement::Let(stmt) => todo!(),
-        Statement::Return(ret) => todo!(),
+        Statement::Return(ret) => {
+            let val = eval_expression(&ret.value)?;
+            Ok(Object::Return(Box::new(object::Return { value: val })))
+        }
     }
 }
 
 fn eval_minus_prefix_operator_expression(right: &Object) -> EvalResult {
     match right {
         Object::Int(int) => Ok(Object::Int(-int)),
-        _ => Ok(Object::Null),
+        _ => Err(format!("Unknown operator: -{}", right)),
     }
 }
 
@@ -57,7 +67,7 @@ fn eval_prefix_expression(operator: &Token, right: &Object) -> EvalResult {
     match operator {
         Token::Bang => eval_bang_operator_expression(right),
         Token::Minus => eval_minus_prefix_operator_expression(right),
-        _ => Ok(Object::Null),
+        _ => Err(format!("Unknown operator: {}{}", operator, right)),
     }
 }
 
@@ -75,7 +85,7 @@ fn eval_integer_infix_expression(operator: &Token, left: i64, right: i64) -> Eva
         Token::Lt => native_bool_to_boolean_object(left < right),
         Token::Eq => native_bool_to_boolean_object(left == right),
         Token::Neq => native_bool_to_boolean_object(left != right),
-        _ => Ok(Object::Null),
+        _ => Err(format!("Unknown operator: {} {} {}", left, operator, right)),
     }
 }
 
@@ -105,6 +115,7 @@ fn is_truthy(obj: &Object) -> bool {
         Object::Bool(b) => *b,
         Object::Null => false,
         Object::Int(_) => true,
+        Object::Return(ret) => is_truthy(&ret.value),
     }
 }
 

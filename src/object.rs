@@ -5,6 +5,18 @@ pub enum Object {
     Int(i64),
     Bool(bool),
     Null,
+    Return(Box<Return>),
+}
+
+#[derive(Debug)]
+pub struct Return {
+    pub value: Object,
+}
+
+impl fmt::Display for Return {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value.inspect())
+    }
 }
 
 impl Object {
@@ -13,8 +25,8 @@ impl Object {
             Object::Int(i) => i.to_string(),
             Object::Bool(b) => b.to_string(),
             Object::Null => String::from("null"),
+            Object::Return(r) => r.value.inspect(),
             //     Object::String(s) => s.clone(),
-            //     Object::Return(r) => r.value.inspect(),
             //     Object::Function(f) => f.inspect(),
             //     Object::Builtin(b) => b.inspect(),
             //     Object::Array(a) => a.inspect(),
