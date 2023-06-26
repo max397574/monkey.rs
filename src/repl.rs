@@ -1,4 +1,4 @@
-use crate::{lexer, parser::Parser};
+use crate::{ast::Node, evaluator, lexer, parser::Parser};
 use std::io;
 
 pub fn start<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::Result<()> {
@@ -12,10 +12,14 @@ pub fn start<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::
         let program = parser.parse_program();
         match program {
             Ok(prog) => {
-                for statement in prog.statements {
-                    // println!("{statement}");
-                    println!("{statement:?}");
+                match evaluator::eval(&Node::Program(Box::new(prog))) {
+                    Ok(evaluated) => println!("{evaluated}"),
+                    Err(e) => println!("{e}"),
                 }
+                // for statement in prog.statements {
+                // println!("{statement}");
+                //     println!("{statement:?}");
+                // }
             }
             Err(errs) => {
                 for err in errs {

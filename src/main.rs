@@ -2,6 +2,8 @@ pub mod lexer;
 pub mod repl;
 mod ast;
 mod parser;
+pub mod object;
+pub mod evaluator;
 use std::io;
 
 fn main() {

@@ -1,9 +1,9 @@
 use crate::lexer::Token;
 
 pub enum Node {
-    Program(Program),
-    Statement,
-    Expression,
+    Program(Box<Program>),
+    Statement(Box<Statement>),
+    Expression(Box<Expression>),
 }
 
 pub struct Program {
